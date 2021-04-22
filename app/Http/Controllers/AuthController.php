@@ -8,11 +8,21 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use Exception;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
     public function login(Request $request)
     {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|string|email|max:255',
+            'password' => 'required|string|min:8',
+        ]);
+        if ($validator->fails())
+        {
+            return response(['errors'=>$validator->errors()->all()], 422);
+        }
+
         if (Auth::attempt(['email' => $request->email, 'password' => $request->password])) {
             try {
                 /* @var User user */
@@ -37,8 +47,19 @@ class AuthController extends Controller
         return  Auth::user();
     }
 
-    public function registration(RegisterRequest $request)
+    public function registration(Request $request)
     {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:8|confirmed',
+            'about' => 'required',
+        ]);
+
+        if ($validator->fails())
+        {
+            return response(['errors'=>$validator->errors()->all()], 422);
+        }
         try {
             $user = User::create([
                 'name' => $request->name,
@@ -52,7 +73,7 @@ class AuthController extends Controller
             ], status: 201);
         } catch (Exception $th) {
             return \response([
-                'message' => 'error',
+                'message' => 'Something is wrong',
             ], status: 400);
         }
     }
